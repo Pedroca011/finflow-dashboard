@@ -6,11 +6,19 @@ import { CreateOrderInput, Order } from "@/types";
 import { toast } from "sonner";
 
 export const useOrders = () => {
-  const { orders, isLoading, setOrders, addOrder, updateOrder, removeOrder, setIsLoading } =
-    useOrdersStore();
+  const {
+    orders,
+    isLoading,
+    setOrders,
+    addOrder,
+    updateOrder,
+    removeOrder,
+    setIsLoading,
+  } = useOrdersStore();
   const { user } = useAuthStore();
 
   const fetchOrders = async () => {
+    console.log("User vindo do useAuthStore:", user);
     if (!user) return;
 
     setIsLoading(true);
