@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { useStocks, useStockQuote } from "@/hooks/useStocks";
+import { useStocks } from "@/hooks/useStocks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -21,16 +21,12 @@ import {
 } from "@/components/ui/dialog";
 import { Search, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrapiStock } from "@/services/brapi";
 
 const Stocks = () => {
   const { data: stocks, isLoading, error } = useStocks();
   const [search, setSearch] = useState("");
-  const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
-
-  const { data: quoteData, isLoading: isQuoteLoading } = useStockQuote(
-    selectedTicker || "",
-    !!selectedTicker
-  );
+  const [selectedStock, setSelectedStock] = useState<BrapiStock | null>(null);
 
   const filteredStocks = stocks?.filter(
     (stock) =>
@@ -57,8 +53,6 @@ const Stocks = () => {
     }
     return value.toString();
   };
-
-  const quote = quoteData?.[0];
 
   return (
     <DashboardLayout>
@@ -118,7 +112,7 @@ const Stocks = () => {
                       <TableRow
                         key={stock.stock}
                         className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => setSelectedTicker(stock.stock)}
+                        onClick={() => setSelectedStock(stock)}
                       >
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -175,95 +169,72 @@ const Stocks = () => {
 
         {/* Modal de detalhes da ação */}
         <Dialog
-          open={!!selectedTicker}
-          onOpenChange={() => setSelectedTicker(null)}
+          open={!!selectedStock}
+          onOpenChange={() => setSelectedStock(null)}
         >
           <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                {quote?.logourl && (
-                  <img
-                    src={quote.logourl}
-                    alt={selectedTicker || ""}
-                    className="h-8 w-8 rounded"
-                  />
-                )}
-                {selectedTicker} - {quote?.shortName || "Carregando..."}
-              </DialogTitle>
-            </DialogHeader>
-            {isQuoteLoading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-24 w-full" />
-              </div>
-            ) : quote ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-3xl font-bold">
-                    {formatCurrency(quote.regularMarketPrice)}
-                  </span>
-                  <Badge
-                    className={cn(
-                      "text-lg px-3 py-1",
-                      quote.regularMarketChangePercent >= 0
-                        ? "bg-success/10 text-success"
-                        : "bg-destructive/10 text-destructive"
+            {selectedStock && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    {selectedStock.logo && (
+                      <img
+                        src={selectedStock.logo}
+                        alt={selectedStock.stock}
+                        className="h-8 w-8 rounded"
+                      />
                     )}
-                  >
-                    {quote.regularMarketChangePercent >= 0 ? "+" : ""}
-                    {quote.regularMarketChangePercent.toFixed(2)}%
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Abertura</span>
-                      <span className="font-mono">
-                        {formatCurrency(quote.regularMarketOpen)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Máxima</span>
-                      <span className="font-mono text-success">
-                        {formatCurrency(quote.regularMarketDayHigh)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Mínima</span>
-                      <span className="font-mono text-destructive">
-                        {formatCurrency(quote.regularMarketDayLow)}
-                      </span>
-                    </div>
+                    {selectedStock.stock} - {selectedStock.name}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-3xl font-bold">
+                      {formatCurrency(selectedStock.close)}
+                    </span>
+                    <Badge
+                      className={cn(
+                        "text-lg px-3 py-1",
+                        selectedStock.change >= 0
+                          ? "bg-success/10 text-success"
+                          : "bg-destructive/10 text-destructive"
+                      )}
+                    >
+                      {selectedStock.change >= 0 ? "+" : ""}
+                      {selectedStock.change.toFixed(2)}%
+                    </Badge>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Fech. Ant.</span>
-                      <span className="font-mono">
-                        {formatCurrency(quote.regularMarketPreviousClose)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Volume</span>
-                      <span className="font-mono">
-                        {formatVolume(quote.regularMarketVolume)}
-                      </span>
-                    </div>
-                    {quote.marketCap && (
+
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Market Cap</span>
+                        <span className="text-muted-foreground">Volume</span>
                         <span className="font-mono">
-                          {formatVolume(quote.marketCap)}
+                          {formatVolume(selectedStock.volume)}
                         </span>
                       </div>
-                    )}
+                      {selectedStock.sector && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Setor</span>
+                          <span className="font-mono text-right">
+                            {selectedStock.sector}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {selectedStock.market_cap && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Market Cap</span>
+                          <span className="font-mono">
+                            {formatVolume(selectedStock.market_cap)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="text-center py-4 text-muted-foreground">
-                Erro ao carregar dados
-              </div>
+              </>
             )}
           </DialogContent>
         </Dialog>
