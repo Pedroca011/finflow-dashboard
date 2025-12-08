@@ -99,7 +99,7 @@ const AuthPage = () => {
             <div className="p-2 bg-primary rounded-xl">
               <TrendingUp className="h-8 w-8 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-bold">TradeSim</span>
+            <span className="text-2xl font-bold">Hexor Trade</span>
           </div>
           <p className="text-muted-foreground">
             Plataforma de simulação de trading
