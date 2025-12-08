@@ -19,8 +19,10 @@ import { useState } from "react";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+  { icon: TrendingUp, label: "Ações", path: "/stocks" },
   { icon: FileText, label: "Ordens", path: "/orders" },
   { icon: CreditCard, label: "Assinatura", path: "/billing" },
+  { icon: Settings, label: "Configurações", path: "/settings" },
 ];
 
 export const Sidebar = () => {
@@ -46,7 +48,7 @@ export const Sidebar = () => {
           <div className="p-2 bg-primary rounded-lg shrink-0">
             <TrendingUp className="h-5 w-5 text-primary-foreground" />
           </div>
-          {!collapsed && <span className="font-bold text-lg">TradeSim</span>}
+          {!collapsed && <span className="font-bold text-lg">Hexor Trade</span>}
         </div>
 
         {/* Toggle button */}

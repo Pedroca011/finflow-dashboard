@@ -42,13 +42,6 @@ const Orders = () => {
     setIsSubmitting(false);
   };
 
-  const onSubmit = async (data: OrderFormData) => {
-    setIsSubmitting(true);
-    await createOrder(data);
-    reset();
-    setIsSubmitting(false);
-  };
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -62,7 +55,7 @@ const Orders = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 md:grid-cols-5">
+            <form onSubmit={handleSubmit(onSubmitOrder)} className="grid gap-4 md:grid-cols-5">
               <div>
                 <Label>Ticker</Label>
                 <Input placeholder="PETR4" {...register("ticker")} />
