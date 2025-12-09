@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { StockDetailChart } from "@/components/StockDetailChart";
 import { useStocks } from "@/hooks/useStocks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -14,19 +16,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Search, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Search, TrendingUp, TrendingDown, BarChart3, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { BrapiStock } from "@/services/brapi";
 
 const Stocks = () => {
   const { data: stocks, isLoading, error } = useStocks();
   const [search, setSearch] = useState("");
-  const [selectedStock, setSelectedStock] = useState<BrapiStock | null>(null);
+  const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
 
   const filteredStocks = stocks?.filter(
     (stock) =>
@@ -42,15 +43,9 @@ const Stocks = () => {
   };
 
   const formatVolume = (value: number) => {
-    if (value >= 1_000_000_000) {
-      return `${(value / 1_000_000_000).toFixed(2)}B`;
-    }
-    if (value >= 1_000_000) {
-      return `${(value / 1_000_000).toFixed(2)}M`;
-    }
-    if (value >= 1_000) {
-      return `${(value / 1_000).toFixed(2)}K`;
-    }
+    if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`;
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+    if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
     return value.toString();
   };
 
@@ -61,7 +56,7 @@ const Stocks = () => {
           <div>
             <h1 className="text-3xl font-bold">Ações</h1>
             <p className="text-muted-foreground">
-              Lista de ações disponíveis na B3
+              Clique em uma ação para ver detalhes e gráfico
             </p>
           </div>
           <div className="relative w-full sm:w-80">
@@ -112,7 +107,7 @@ const Stocks = () => {
                       <TableRow
                         key={stock.stock}
                         className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => setSelectedStock(stock)}
+                        onClick={() => setSelectedTicker(stock.stock)}
                       >
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -122,8 +117,7 @@ const Stocks = () => {
                                 alt={stock.stock}
                                 className="h-6 w-6 rounded"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display =
-                                    "none";
+                                  (e.target as HTMLImageElement).style.display = "none";
                                 }}
                               />
                             )}
@@ -167,77 +161,20 @@ const Stocks = () => {
           </CardContent>
         </Card>
 
-        {/* Modal de detalhes da ação */}
-        <Dialog
-          open={!!selectedStock}
-          onOpenChange={() => setSelectedStock(null)}
-        >
-          <DialogContent className="sm:max-w-[500px]">
-            {selectedStock && (
-              <>
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    {selectedStock.logo && (
-                      <img
-                        src={selectedStock.logo}
-                        alt={selectedStock.stock}
-                        className="h-8 w-8 rounded"
-                      />
-                    )}
-                    {selectedStock.stock} - {selectedStock.name}
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-3xl font-bold">
-                      {formatCurrency(selectedStock.close)}
-                    </span>
-                    <Badge
-                      className={cn(
-                        "text-lg px-3 py-1",
-                        selectedStock.change >= 0
-                          ? "bg-success/10 text-success"
-                          : "bg-destructive/10 text-destructive"
-                      )}
-                    >
-                      {selectedStock.change >= 0 ? "+" : ""}
-                      {selectedStock.change.toFixed(2)}%
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Volume</span>
-                        <span className="font-mono">
-                          {formatVolume(selectedStock.volume)}
-                        </span>
-                      </div>
-                      {selectedStock.sector && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Setor</span>
-                          <span className="font-mono text-right">
-                            {selectedStock.sector}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      {selectedStock.market_cap && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Market Cap</span>
-                          <span className="font-mono">
-                            {formatVolume(selectedStock.market_cap)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-          </DialogContent>
-        </Dialog>
+        {/* Sheet de detalhes da ação */}
+        <Sheet open={!!selectedTicker} onOpenChange={() => setSelectedTicker(null)}>
+          <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+            <SheetHeader className="mb-4">
+              <SheetTitle className="flex items-center justify-between">
+                <span>Detalhes da Ação</span>
+                <Button variant="ghost" size="icon" onClick={() => setSelectedTicker(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </SheetTitle>
+            </SheetHeader>
+            {selectedTicker && <StockDetailChart ticker={selectedTicker} />}
+          </SheetContent>
+        </Sheet>
       </div>
     </DashboardLayout>
   );
