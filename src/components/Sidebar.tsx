@@ -14,13 +14,16 @@ import {
   ChevronLeft,
   ChevronRight,
   User,
+  ClipboardList,
+  Plus,
 } from "lucide-react";
 import { useState } from "react";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: TrendingUp, label: "Ações", path: "/stocks" },
-  { icon: FileText, label: "Ordens", path: "/orders" },
+  { icon: Plus, label: "Nova Ordem", path: "/orders" },
+  { icon: ClipboardList, label: "Minhas Ordens", path: "/my-orders" },
   { icon: CreditCard, label: "Assinatura", path: "/billing" },
   { icon: Settings, label: "Configurações", path: "/settings" },
 ];

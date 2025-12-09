@@ -1,6 +1,5 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { OrdersTable } from "@/components/OrdersTable";
-import { StockMiniChart } from "@/components/StockMiniChart";
+import { StockDetailChart } from "@/components/StockDetailChart";
 import { useOrders } from "@/hooks/useOrders";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, ShoppingCart, TrendingUp } from "lucide-react";
 import { useState } from "react";
 
 const orderSchema = z.object({
@@ -23,7 +22,7 @@ const orderSchema = z.object({
 type OrderFormData = z.infer<typeof orderSchema>;
 
 const Orders = () => {
-  const { orders, createOrder, executeOrder, cancelOrder, deleteOrder, isLoading } = useOrders();
+  const { createOrder } = useOrders();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<OrderFormData>({
@@ -32,11 +31,23 @@ const Orders = () => {
   });
 
   const tickerValue = watch("ticker");
+  const priceValue = watch("price");
+  const quantityValue = watch("quantity");
+  const orderType = watch("order_type");
+
+  const totalValue = (priceValue || 0) * (quantityValue || 0);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+  };
 
   const onSubmitOrder = async (data: OrderFormData) => {
     setIsSubmitting(true);
     await createOrder({
-      ticker: data.ticker,
+      ticker: data.ticker.toUpperCase(),
       order_type: data.order_type,
       price: data.price,
       quantity: data.quantity,
@@ -48,81 +59,121 @@ const Orders = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Ordens</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Nova Ordem</h1>
+          <p className="text-muted-foreground">
+            Crie ordens de compra ou venda. Suas ordens serão executadas automaticamente quando o preço de mercado atingir seu preço alvo.
+          </p>
+        </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Formulário de criação de ordem */}
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Plus className="h-5 w-5" />
-                Nova Ordem
+                Criar Ordem
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit(onSubmitOrder)} className="grid gap-4 md:grid-cols-5">
-                <div>
-                  <Label>Ticker</Label>
-                  <Input placeholder="PETR4" {...register("ticker")} />
-                  {errors.ticker && <p className="text-xs text-destructive mt-1">{errors.ticker.message}</p>}
+              <form onSubmit={handleSubmit(onSubmitOrder)} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="ticker">Ticker da Ação</Label>
+                  <Input 
+                    id="ticker"
+                    placeholder="Ex: PETR4, VALE3, ITUB4" 
+                    {...register("ticker")} 
+                    className="uppercase"
+                  />
+                  {errors.ticker && (
+                    <p className="text-xs text-destructive">{errors.ticker.message}</p>
+                  )}
                 </div>
-                <div>
-                  <Label>Tipo</Label>
+
+                <div className="space-y-2">
+                  <Label>Tipo de Ordem</Label>
                   <Controller
                     name="order_type"
                     control={control}
                     render={({ field }) => (
                       <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="buy">Compra</SelectItem>
-                          <SelectItem value="sell">Venda</SelectItem>
+                          <SelectItem value="buy">
+                            <div className="flex items-center gap-2">
+                              <ShoppingCart className="h-4 w-4 text-success" />
+                              Compra
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="sell">
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="h-4 w-4 text-destructive" />
+                              Venda
+                            </div>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     )}
                   />
                 </div>
-                <div>
-                  <Label>Preço (R$)</Label>
-                  <Input type="number" step="0.01" {...register("price", { valueAsNumber: true })} />
-                  {errors.price && <p className="text-xs text-destructive mt-1">{errors.price.message}</p>}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Preço Alvo (R$)</Label>
+                    <Input 
+                      id="price"
+                      type="number" 
+                      step="0.01" 
+                      {...register("price", { valueAsNumber: true })} 
+                    />
+                    {errors.price && (
+                      <p className="text-xs text-destructive">{errors.price.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Quantidade</Label>
+                    <Input 
+                      id="quantity"
+                      type="number" 
+                      {...register("quantity", { valueAsNumber: true })} 
+                    />
+                    {errors.quantity && (
+                      <p className="text-xs text-destructive">{errors.quantity.message}</p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <Label>Quantidade</Label>
-                  <Input type="number" {...register("quantity", { valueAsNumber: true })} />
-                  {errors.quantity && <p className="text-xs text-destructive mt-1">{errors.quantity.message}</p>}
+
+                {/* Resumo da ordem */}
+                <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tipo:</span>
+                    <span className={orderType === "buy" ? "text-success" : "text-destructive"}>
+                      {orderType === "buy" ? "Compra" : "Venda"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Valor Total:</span>
+                    <span className="font-mono font-semibold">{formatCurrency(totalValue)}</span>
+                  </div>
                 </div>
-                <div className="flex items-end">
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar Ordem"}
-                  </Button>
-                </div>
+
+                <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
+                  Criar Ordem
+                </Button>
               </form>
             </CardContent>
           </Card>
 
-          {/* Mini gráfico da ação selecionada */}
-          <div className="lg:col-span-1">
-            {tickerValue && tickerValue.length >= 4 ? (
-              <StockMiniChart ticker={tickerValue} />
-            ) : (
-              <Card className="border-dashed h-full">
-                <CardContent className="flex flex-col items-center justify-center h-full py-8 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Digite o ticker de uma ação para ver o gráfico
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+          {/* Gráfico e detalhes da ação */}
+          <StockDetailChart ticker={tickerValue} />
         </div>
-
-        <OrdersTable
-          orders={orders}
-          showActions
-          onExecute={executeOrder}
-          onCancel={cancelOrder}
-          onDelete={deleteOrder}
-        />
       </div>
     </DashboardLayout>
   );
