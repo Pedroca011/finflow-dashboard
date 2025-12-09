@@ -15,10 +15,19 @@ export const useOrders = () => {
     removeOrder,
     setIsLoading,
   } = useOrdersStore();
-  const { user } = useAuthStore();
+  const { user, subscription } = useAuthStore();
+
+  // Get order limits based on subscription
+  const getOrderLimits = () => {
+    const isActive = subscription?.status === "active";
+    const plan = subscription?.plan || "basic";
+    
+    if (!isActive) return 3; // Free tier
+    if (plan === "pro") return Infinity;
+    return 5; // Basic plan
+  };
 
   const fetchOrders = async () => {
-    console.log("User vindo do useAuthStore:", user);
     if (!user) return;
 
     setIsLoading(true);
@@ -41,6 +50,23 @@ export const useOrders = () => {
     if (!user) {
       toast.error("Você precisa estar logado para criar uma ordem");
       return { error: new Error("Not authenticated") };
+    }
+
+    // Check order limits
+    const maxOrders = getOrderLimits();
+    const openOrders = orders.filter(o => o.status === "open").length;
+    
+    if (openOrders >= maxOrders) {
+      const planName = subscription?.status === "active" 
+        ? subscription?.plan === "pro" ? "Pro" : "Basic"
+        : "gratuito";
+      
+      toast.error(
+        `Você atingiu o limite de ${maxOrders} ordens abertas do plano ${planName}. ` +
+        `Faça upgrade para criar mais ordens.`,
+        { duration: 5000 }
+      );
+      return { error: new Error("Order limit reached") };
     }
 
     const { data, error } = await supabase
@@ -135,5 +161,7 @@ export const useOrders = () => {
     executeOrder,
     cancelOrder,
     deleteOrder,
+    maxOrders: getOrderLimits(),
+    openOrdersCount: orders.filter(o => o.status === "open").length,
   };
 };

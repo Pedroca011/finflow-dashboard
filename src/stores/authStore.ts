@@ -17,10 +17,12 @@ interface AuthState {
   setIsLoading: (value: boolean) => void;
 
   initialize: () => Promise<void>;
+  fetchProfile: (userId: string) => Promise<void>;
+  fetchSubscription: (userId: string) => Promise<void>;
   reset: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   session: null,
   profile: null,
@@ -33,23 +35,61 @@ export const useAuthStore = create<AuthState>((set) => ({
   setSubscription: (subscription) => set({ subscription }),
   setIsLoading: (value) => set({ isLoading: value }),
 
-  // 🚀 Inicializa o estado de autenticação
+  fetchProfile: async (userId: string) => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (!error && data) {
+      set({ profile: data as Profile });
+    }
+  },
+
+  fetchSubscription: async (userId: string) => {
+    const { data, error } = await supabase
+      .from("subscriptions")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (!error && data) {
+      set({ subscription: data as Subscription });
+    }
+  },
+
   initialize: async () => {
     const { data } = await supabase.auth.getSession();
 
+    const user = data.session?.user ?? null;
     set({
-      user: data.session?.user ?? null,
+      user,
       session: data.session ?? null,
       isLoading: false,
     });
 
-    // Escuta login/logout automaticamente
-    supabase.auth.onAuthStateChange((_event, session) => {
+    // Fetch profile and subscription if user is logged in
+    if (user) {
+      get().fetchProfile(user.id);
+      get().fetchSubscription(user.id);
+    }
+
+    // Listen for auth state changes
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      const newUser = session?.user ?? null;
       set({
-        user: session?.user ?? null,
+        user: newUser,
         session: session ?? null,
         isLoading: false,
       });
+
+      if (newUser) {
+        get().fetchProfile(newUser.id);
+        get().fetchSubscription(newUser.id);
+      } else {
+        set({ profile: null, subscription: null });
+      }
     });
   },
 
