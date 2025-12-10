@@ -55,6 +55,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          balance: number
           created_at: string | null
           email: string | null
           full_name: string | null
@@ -63,6 +64,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          balance?: number
           created_at?: string | null
           email?: string | null
           full_name?: string | null
@@ -71,6 +73,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          balance?: number
           created_at?: string | null
           email?: string | null
           full_name?: string | null

@@ -105,6 +105,9 @@ export const Sidebar = () => {
                   <p className="text-xs text-muted-foreground truncate">
                     {profile.email}
                   </p>
+                  <p className="text-sm font-semibold text-success mt-1">
+                    R$ {(profile.balance ?? 10000).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </p>
                 </div>
               </div>
               {subscription && (

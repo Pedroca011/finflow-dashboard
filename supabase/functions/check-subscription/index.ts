@@ -92,12 +92,22 @@ serve(async (req) => {
 
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
       stripeSubscriptionId = subscription.id;
+      
+      // Safely parse subscription end date
+      if (subscription.current_period_end && typeof subscription.current_period_end === 'number') {
+        try {
+          subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+        } catch (e) {
+          logStep("Warning: Could not parse subscription end date", { current_period_end: subscription.current_period_end });
+          subscriptionEnd = null;
+        }
+      }
+      
       logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
       
-      const productId = subscription.items.data[0].price.product as string;
-      plan = PLAN_MAPPING[productId] || "basic";
+      const productId = subscription.items.data[0]?.price?.product as string;
+      plan = PLAN_MAPPING[productId] || "pro";
       logStep("Determined subscription plan", { productId, plan });
       
       // Update subscription in database
