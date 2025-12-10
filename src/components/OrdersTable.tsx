@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ArrowUpRight, ArrowDownRight, Clock, Check, X, Play, Trash2 } from "lucide-react";
+import { useStocks } from "@/hooks/useStocks";
+import { BrapiStock } from "@/services/brapi";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -22,7 +24,13 @@ export const OrdersTable = ({
   showActions = false,
   limit,
 }: OrdersTableProps) => {
+  const { data: stocks } = useStocks();
   const displayOrders = limit ? orders.slice(0, limit) : orders;
+
+  const getMarketPrice = (ticker: string): number | null => {
+    const stock = stocks?.find((s: BrapiStock) => s.stock === ticker);
+    return stock?.close ?? null;
+  };
 
   const getStatusBadge = (status: Order["status"]) => {
     switch (status) {
@@ -94,8 +102,11 @@ export const OrdersTable = ({
                 <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">
                   Tipo
                 </th>
+              <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">
+                  Preço Alvo
+                </th>
                 <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">
-                  Preço
+                  Preço Mercado
                 </th>
                 <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">
                   Qtd
@@ -139,6 +150,18 @@ export const OrdersTable = ({
                   </td>
                   <td className="py-3 px-2 text-right font-mono">
                     {formatCurrency(order.price)}
+                  </td>
+                  <td className="py-3 px-2 text-right font-mono">
+                    {(() => {
+                      const marketPrice = getMarketPrice(order.ticker);
+                      if (marketPrice === null) return <span className="text-muted-foreground">-</span>;
+                      const isAbove = marketPrice > order.price;
+                      const isBuy = order.order_type === "buy";
+                      const colorClass = isBuy 
+                        ? (isAbove ? "text-destructive" : "text-success")
+                        : (isAbove ? "text-success" : "text-destructive");
+                      return <span className={colorClass}>{formatCurrency(marketPrice)}</span>;
+                    })()}
                   </td>
                   <td className="py-3 px-2 text-right">{order.quantity}</td>
                   <td className="py-3 px-2 text-center">
