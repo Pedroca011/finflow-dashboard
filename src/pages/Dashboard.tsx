@@ -4,15 +4,48 @@ import { PerformanceChart } from "@/components/PerformanceChart";
 import { OrdersTable } from "@/components/OrdersTable";
 import { useOrders } from "@/hooks/useOrders";
 import { useAuthStore } from "@/stores/authStore";
-import { Wallet, TrendingUp, FileText, Target } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, FileText, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useMemo } from "react";
+
+const INITIAL_BALANCE = 10000;
 
 const Dashboard = () => {
   const { orders } = useOrders();
-  const { subscription } = useAuthStore();
+  const { subscription, profile } = useAuthStore();
 
   const openOrders = orders.filter((o) => o.status === "open").length;
   const executedOrders = orders.filter((o) => o.status === "executed").length;
+
+  // Calculate profit/loss based on executed orders
+  const { totalProfit, profitPercentage } = useMemo(() => {
+    const executedOrdersList = orders.filter((o) => o.status === "executed");
+    
+    let profit = 0;
+    executedOrdersList.forEach((order) => {
+      const orderValue = order.price * order.quantity;
+      if (order.order_type === "sell") {
+        profit += orderValue;
+      } else {
+        profit -= orderValue;
+      }
+    });
+
+    const percentage = INITIAL_BALANCE > 0 
+      ? ((profit / INITIAL_BALANCE) * 100) 
+      : 0;
+
+    return { 
+      totalProfit: profit, 
+      profitPercentage: percentage 
+    };
+  }, [orders]);
+
+  const currentBalance = profile?.balance ?? INITIAL_BALANCE;
+  const balanceChange = currentBalance - INITIAL_BALANCE;
+  const balanceChangePercent = ((balanceChange / INITIAL_BALANCE) * 100);
+
+  const isProfit = totalProfit >= 0;
 
   return (
     <DashboardLayout>
@@ -32,17 +65,23 @@ const Dashboard = () => {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatsCard
             title="Saldo Disponível"
-            value="R$ 50.000,00"
-            description="Saldo fictício"
+            value={`R$ ${currentBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+            description="Saldo atual"
             icon={Wallet}
-            trend={{ value: 12.5, positive: true }}
+            trend={balanceChange !== 0 ? { 
+              value: Math.abs(balanceChangePercent), 
+              positive: balanceChange >= 0 
+            } : undefined}
           />
           <StatsCard
-            title="Lucro Total"
-            value="R$ 8.450,00"
-            description="Este mês"
-            icon={TrendingUp}
-            trend={{ value: 8.2, positive: true }}
+            title={isProfit ? "Lucro Total" : "Prejuízo Total"}
+            value={`R$ ${Math.abs(totalProfit).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+            description="Baseado em ordens executadas"
+            icon={isProfit ? TrendingUp : TrendingDown}
+            trend={{ 
+              value: Math.abs(profitPercentage), 
+              positive: isProfit 
+            }}
           />
           <StatsCard
             title="Ordens Abertas"
@@ -59,7 +98,7 @@ const Dashboard = () => {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <PerformanceChart />
+          <PerformanceChart orders={orders} initialBalance={INITIAL_BALANCE} currentBalance={currentBalance} />
           <div className="lg:col-span-1">
             <OrdersTable orders={orders} limit={5} />
           </div>
