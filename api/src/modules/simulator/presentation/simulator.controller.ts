@@ -68,8 +68,8 @@ export class SimulatorController {
     return this.cancelOrderUseCase.execute(user.id, orderId, true);
   }
 
-  @Get('portfolio')
-  async getPortfolio(@CurrentUser() user: { id: string }) {
-    return this.getPortfolioUseCase.execute(user.id);
-  }
+  // @Get('portfolio')
+  // async getPortfolio(@CurrentUser() user: { id: string }) {
+  //   return this.getPortfolioUseCase.execute(user.id);
+  // }
 }

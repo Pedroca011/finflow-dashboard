@@ -15,6 +15,7 @@ import { Plus, Loader2, ShoppingCart, TrendingUp, AlertTriangle, Crown } from "l
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { watch } from "fs";
 
 const orderSchema = z.object({
   ticker: z.string().min(1, "Ticker obrigatório").max(10),
@@ -32,7 +33,7 @@ const Orders = () => {
 
   const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<OrderFormData>({
     resolver: zodResolver(orderSchema),
-    defaultValues: { ticker: "", order_type: "buy", price: 10, quantity: 1 },
+    defaultValues: { ticker: "", order_type: "buy", price: 0, quantity: 1 },
   });
 
   const tickerValue = watch("ticker");

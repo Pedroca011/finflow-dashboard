@@ -117,7 +117,8 @@ const Stocks = () => {
                                 alt={stock.stock}
                                 className="h-6 w-6 rounded"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = "none";
+                                  (e.target as HTMLImageElement).style.display =
+                                    "none";
                                 }}
                               />
                             )}
@@ -132,7 +133,9 @@ const Stocks = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <Badge
-                            variant={stock.change >= 0 ? "default" : "destructive"}
+                            variant={
+                              stock.change >= 0 ? "default" : "destructive"
+                            }
                             className={cn(
                               "font-mono",
                               stock.change >= 0
@@ -162,14 +165,14 @@ const Stocks = () => {
         </Card>
 
         {/* Sheet de detalhes da ação */}
-        <Sheet open={!!selectedTicker} onOpenChange={() => setSelectedTicker(null)}>
+        <Sheet
+          open={!!selectedTicker}
+          onOpenChange={() => setSelectedTicker(null)}
+        >
           <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
             <SheetHeader className="mb-4">
               <SheetTitle className="flex items-center justify-between">
                 <span>Detalhes da Ação</span>
-                <Button variant="ghost" size="icon" onClick={() => setSelectedTicker(null)}>
-                  <X className="h-4 w-4" />
-                </Button>
               </SheetTitle>
             </SheetHeader>
             {selectedTicker && <StockDetailChart ticker={selectedTicker} />}
