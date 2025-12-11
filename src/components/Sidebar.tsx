@@ -16,6 +16,7 @@ import {
   User,
   ClipboardList,
   Plus,
+  PieChart,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -24,6 +25,7 @@ const menuItems = [
   { icon: TrendingUp, label: "Ações", path: "/stocks" },
   { icon: Plus, label: "Nova Ordem", path: "/orders" },
   { icon: ClipboardList, label: "Minhas Ordens", path: "/my-orders" },
+  { icon: PieChart, label: "Portfólio", path: "/portfolio" },
   { icon: CreditCard, label: "Assinatura", path: "/billing" },
   { icon: Settings, label: "Configurações", path: "/settings" },
 ];

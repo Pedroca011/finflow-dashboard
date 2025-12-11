@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Orders from "./pages/Orders";
 import MyOrders from "./pages/MyOrders";
 import Stocks from "./pages/Stocks";
+import Portfolio from "./pages/Portfolio";
 import Billing from "./pages/Billing";
 import BillingSuccess from "./pages/BillingSuccess";
 import BillingCancel from "./pages/BillingCancel";
@@ -66,6 +67,14 @@ const App = () => {
                 element={
                   <ProtectedRoute>
                     <MyOrders />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/portfolio"
+                element={
+                  <ProtectedRoute>
+                    <Portfolio />
                   </ProtectedRoute>
                 }
               />
