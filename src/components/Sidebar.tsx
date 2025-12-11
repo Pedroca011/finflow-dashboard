@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import Hexor from "@/assets/Hexor.svg";
 import {
   LayoutDashboard,
   FileText,
@@ -50,9 +51,8 @@ export const Sidebar = () => {
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className="flex items-center gap-2 p-4 border-b border-sidebar-border">
-          <div className="p-2 bg-primary rounded-lg shrink-0">
-            <TrendingUp className="h-5 w-5 text-primary-foreground" />
-          </div>
+          <img src={Hexor} className="h-6 w-6 text-primary-foreground" />
+
           {!collapsed && <span className="font-bold text-lg">Hexor Trade</span>}
         </div>
 
@@ -80,7 +80,8 @@ export const Sidebar = () => {
                   variant={isActive ? "secondary" : "ghost"}
                   className={cn(
                     "w-full justify-start gap-3",
-                    isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
+                    isActive &&
+                      "bg-sidebar-accent text-sidebar-accent-foreground",
                     collapsed && "justify-center px-2"
                   )}
                 >
@@ -108,7 +109,10 @@ export const Sidebar = () => {
                     {profile.email}
                   </p>
                   <p className="text-sm font-semibold text-success mt-1">
-                    R$ {(profile.balance ?? 10000).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    R${" "}
+                    {(profile.balance ?? 10000).toLocaleString("pt-BR", {
+                      minimumFractionDigits: 2,
+                    })}
                   </p>
                 </div>
               </div>
