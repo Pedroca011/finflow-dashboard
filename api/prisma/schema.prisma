@@ -1,13 +1,10 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider        = "prisma-client-js"
   output          = "../src/shared/core/prisma/generated/client.cjs"
-  engineType      = "library" // Garante o uso de um motor de biblioteca que se adapta melhor
+  engineType      = "library"
   previewFeatures = ["driverAdapters"]
 }
 
@@ -23,23 +20,46 @@ model User {
   email      String   @unique
   name       String?
   avatarUrl  String?
+  balance    Float    @default(10000)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  trades       Trade[]
-  subcriptions Subscription[]
+  trades        Trade[]
+  subscriptions Subscription[]
+  portfolio     Portfolio[]
 }
 
 model Trade {
-  id         String    @id @default(cuid())
-  userId     String
-  stockSybol String
-  quantity   Int
-  price      Float
-  type       TradeType
-  createdAt  DateTime  @default(now())
+  id          String      @id @default(cuid())
+  userId      String
+  stockSymbol String
+  quantity    Int
+  price       Float
+  type        TradeType
+  status      TradeStatus @default(OPEN)
+  executedAt  DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   user User @relation(fields: [userId], references: [id])
+}
+
+model Portfolio {
+  id             String   @id @default(cuid())
+  userId         String
+  stockSymbol    String
+  quantity       Int
+  averagePrice   Float
+  totalInvested  Float
+  currentValue   Float?
+  profitLoss     Float?
+  profitLossPerc Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, stockSymbol])
 }
 
 model Subscription {
@@ -49,6 +69,7 @@ model Subscription {
   plan      String
   status    String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 }
@@ -56,4 +77,10 @@ model Subscription {
 enum TradeType {
   BUY
   SELL
+}
+
+enum TradeStatus {
+  OPEN
+  EXECUTED
+  CANCELLED
 }
