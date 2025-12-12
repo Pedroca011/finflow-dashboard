@@ -15,7 +15,7 @@ import { Plus, Loader2, ShoppingCart, TrendingUp, AlertTriangle, Crown } from "l
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { watch } from "fs";
+
 
 const orderSchema = z.object({
   ticker: z.string().min(1, "Ticker obrigatório").max(10),
