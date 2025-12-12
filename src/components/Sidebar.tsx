@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import Hexor from "@/assets/Hexor.svg";
+import Hexor from "@/assets/hexor.svg";
 import {
   LayoutDashboard,
   FileText,
