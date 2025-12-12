@@ -1,167 +1,115 @@
-import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useOrdersStore } from "@/stores/ordersStore";
-import { useAuthStore } from "@/stores/authStore";
-import { CreateOrderInput, Order } from "@/types";
-import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ordersApi, CreateOrderInput } from '@/services/api';
+import { Order } from '@/types';
+import { toast } from 'sonner';
+import { useSubscription } from './useSubscription';
+
+// Map API response to frontend Order type
+const mapApiOrder = (apiOrder: any): Order => ({
+  id: apiOrder.id,
+  user_id: apiOrder.userId || '',
+  ticker: apiOrder.ticker || apiOrder.stockSymbol,
+  order_type: (apiOrder.orderType || apiOrder.type)?.toLowerCase() as 'buy' | 'sell',
+  price: Number(apiOrder.price),
+  quantity: apiOrder.quantity,
+  status: apiOrder.status?.toLowerCase() as 'open' | 'executed' | 'canceled',
+  executed_at: apiOrder.executedAt,
+  created_at: apiOrder.createdAt,
+  updated_at: apiOrder.updatedAt || apiOrder.createdAt,
+});
 
 export const useOrders = () => {
-  const {
-    orders,
-    isLoading,
-    setOrders,
-    addOrder,
-    updateOrder,
-    removeOrder,
-    setIsLoading,
-  } = useOrdersStore();
-  const { user, subscription } = useAuthStore();
+  const queryClient = useQueryClient();
+  const { isSubscribed, currentPlan } = useSubscription();
 
-  // Get order limits based on subscription
-  const getOrderLimits = () => {
-    const isActive = subscription?.status === "active";
-    const plan = subscription?.plan || "basic";
-    
-    if (!isActive) return 3; // Free tier
-    if (plan === "pro") return Infinity;
-    return 5; // Basic plan
-  };
+  // Calculate max orders based on subscription plan
+  const maxOrders = !isSubscribed ? 3 : currentPlan === 'pro' ? Infinity : 5;
 
-  const fetchOrders = async () => {
-    if (!user) return;
+  // Fetch orders
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['orders'],
+    queryFn: async () => {
+      const response = await ordersApi.getOrders();
+      return response.orders.map(mapApiOrder);
+    },
+    staleTime: 30000,
+    retry: 1,
+  });
 
-    setIsLoading(true);
-    const { data, error } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+  const orders = data || [];
+  const openOrdersCount = orders.filter(o => o.status === 'open').length;
 
-    if (error) {
-      toast.error("Erro ao carregar ordens");
-      console.error(error);
-    } else {
-      setOrders(data as Order[]);
-    }
-    setIsLoading(false);
-  };
-
-  const createOrder = async (input: CreateOrderInput) => {
-    if (!user) {
-      toast.error("Você precisa estar logado para criar uma ordem");
-      return { error: new Error("Not authenticated") };
-    }
-
-    // Check order limits
-    const maxOrders = getOrderLimits();
-    const openOrders = orders.filter(o => o.status === "open").length;
-    
-    if (openOrders >= maxOrders) {
-      const planName = subscription?.status === "active" 
-        ? subscription?.plan === "pro" ? "Pro" : "Basic"
-        : "gratuito";
-      
-      toast.error(
-        `Você atingiu o limite de ${maxOrders} ordens abertas do plano ${planName}. ` +
-        `Faça upgrade para criar mais ordens.`,
-        { duration: 5000 }
-      );
-      return { error: new Error("Order limit reached") };
-    }
-
-    const { data, error } = await supabase
-      .from("orders")
-      .insert({
-        user_id: user.id,
-        ticker: input.ticker.toUpperCase(),
-        order_type: input.order_type,
+  // Create order mutation
+  const createOrderMutation = useMutation({
+    mutationFn: async (input: { ticker: string; order_type: 'buy' | 'sell'; price: number; quantity: number }) => {
+      const apiInput: CreateOrderInput = {
+        ticker: input.ticker,
+        orderType: input.order_type.toUpperCase() as 'BUY' | 'SELL',
         price: input.price,
         quantity: input.quantity,
-        status: "open",
-      })
-      .select()
-      .single();
+      };
+      return ordersApi.createOrder(apiInput);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] });
+      toast.success('Ordem criada com sucesso!');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Erro ao criar ordem');
+    },
+  });
 
-    if (error) {
-      toast.error("Erro ao criar ordem");
-      console.error(error);
-      return { error };
-    }
+  // Execute order mutation
+  const executeOrderMutation = useMutation({
+    mutationFn: (orderId: string) => ordersApi.executeOrder(orderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] });
+      toast.success('Ordem executada com sucesso!');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Erro ao executar ordem');
+    },
+  });
 
-    addOrder(data as Order);
-    toast.success("Ordem criada com sucesso!");
-    return { data };
-  };
+  // Cancel order mutation
+  const cancelOrderMutation = useMutation({
+    mutationFn: (orderId: string) => ordersApi.cancelOrder(orderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      toast.success('Ordem cancelada!');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Erro ao cancelar ordem');
+    },
+  });
 
-  const executeOrder = async (orderId: string) => {
-    const { error } = await supabase
-      .from("orders")
-      .update({
-        status: "executed",
-        executed_at: new Date().toISOString(),
-      })
-      .eq("id", orderId);
-
-    if (error) {
-      toast.error("Erro ao executar ordem");
-      console.error(error);
-      return { error };
-    }
-
-    updateOrder(orderId, {
-      status: "executed",
-      executed_at: new Date().toISOString(),
-    });
-    toast.success("Ordem executada com sucesso!");
-    return { success: true };
-  };
-
-  const cancelOrder = async (orderId: string) => {
-    const { error } = await supabase
-      .from("orders")
-      .update({ status: "canceled" })
-      .eq("id", orderId);
-
-    if (error) {
-      toast.error("Erro ao cancelar ordem");
-      console.error(error);
-      return { error };
-    }
-
-    updateOrder(orderId, { status: "canceled" });
-    toast.success("Ordem cancelada");
-    return { success: true };
-  };
-
-  const deleteOrder = async (orderId: string) => {
-    const { error } = await supabase.from("orders").delete().eq("id", orderId);
-
-    if (error) {
-      toast.error("Erro ao deletar ordem");
-      console.error(error);
-      return { error };
-    }
-
-    removeOrder(orderId);
-    toast.success("Ordem removida");
-    return { success: true };
-  };
-
-  useEffect(() => {
-    if (user) {
-      fetchOrders();
-    }
-  }, [user]);
+  // Delete order mutation
+  const deleteOrderMutation = useMutation({
+    mutationFn: (orderId: string) => ordersApi.deleteOrder(orderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      toast.success('Ordem removida!');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Erro ao remover ordem');
+    },
+  });
 
   return {
     orders,
     isLoading,
-    fetchOrders,
-    createOrder,
-    executeOrder,
-    cancelOrder,
-    deleteOrder,
-    maxOrders: getOrderLimits(),
-    openOrdersCount: orders.filter(o => o.status === "open").length,
+    error,
+    refetch,
+    maxOrders,
+    openOrdersCount,
+    createOrder: createOrderMutation.mutateAsync,
+    executeOrder: executeOrderMutation.mutate,
+    cancelOrder: cancelOrderMutation.mutate,
+    deleteOrder: deleteOrderMutation.mutate,
+    isCreating: createOrderMutation.isPending,
+    isExecuting: executeOrderMutation.isPending,
+    isCanceling: cancelOrderMutation.isPending,
   };
 };
