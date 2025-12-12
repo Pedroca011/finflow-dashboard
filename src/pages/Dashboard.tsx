@@ -3,6 +3,7 @@ import { StatsCard } from "@/components/StatsCard";
 import { PerformanceChart } from "@/components/PerformanceChart";
 import { OrdersTable } from "@/components/OrdersTable";
 import { useOrders } from "@/hooks/useOrders";
+import { usePortfolio } from "@/hooks/usePortfolio";
 import { useAuthStore } from "@/stores/authStore";
 import { Wallet, TrendingUp, TrendingDown, FileText, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -12,36 +13,17 @@ const INITIAL_BALANCE = 10000;
 
 const Dashboard = () => {
   const { orders } = useOrders();
-  const { subscription, profile } = useAuthStore();
+  const { summary, isLoading: isPortfolioLoading } = usePortfolio();
+  const { subscription } = useAuthStore();
 
   const openOrders = orders.filter((o) => o.status === "open").length;
   const executedOrders = orders.filter((o) => o.status === "executed").length;
 
-  // Calculate profit/loss based on executed orders
-  const { totalProfit, profitPercentage } = useMemo(() => {
-    const executedOrdersList = orders.filter((o) => o.status === "executed");
-    
-    let profit = 0;
-    executedOrdersList.forEach((order) => {
-      const orderValue = order.price * order.quantity;
-      if (order.order_type === "sell") {
-        profit += orderValue;
-      } else {
-        profit -= orderValue;
-      }
-    });
+  // Use portfolio summary data for real-time values
+  const currentBalance = summary?.balance ?? INITIAL_BALANCE;
+  const totalProfit = summary?.totalProfitLoss ?? 0;
+  const profitPercentage = summary?.profitLossPercentage ?? 0;
 
-    const percentage = INITIAL_BALANCE > 0 
-      ? ((profit / INITIAL_BALANCE) * 100) 
-      : 0;
-
-    return { 
-      totalProfit: profit, 
-      profitPercentage: percentage 
-    };
-  }, [orders]);
-
-  const currentBalance = profile?.balance ?? INITIAL_BALANCE;
   const balanceChange = currentBalance - INITIAL_BALANCE;
   const balanceChangePercent = ((balanceChange / INITIAL_BALANCE) * 100);
 
