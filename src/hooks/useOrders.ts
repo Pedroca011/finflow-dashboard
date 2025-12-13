@@ -3,6 +3,7 @@ import { ordersApi, CreateOrderInput } from '@/services/api';
 import { Order } from '@/types';
 import { toast } from 'sonner';
 import { useSubscription } from './useSubscription';
+import { useAuthStore } from '@/stores/authStore';
 
 // Map API response to frontend Order type
 const mapApiOrder = (apiOrder: any): Order => ({
@@ -21,6 +22,7 @@ const mapApiOrder = (apiOrder: any): Order => ({
 export const useOrders = () => {
   const queryClient = useQueryClient();
   const { isSubscribed, currentPlan } = useSubscription();
+  const { user } = useAuthStore();
 
   // Calculate max orders based on subscription plan
   const maxOrders = !isSubscribed ? 3 : currentPlan === 'pro' ? Infinity : 5;
@@ -34,6 +36,7 @@ export const useOrders = () => {
     },
     staleTime: 30000,
     retry: 1,
+    enabled: !!user, // Only fetch when user is logged in
   });
 
   const orders = data || [];

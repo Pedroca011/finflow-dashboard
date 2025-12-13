@@ -2,12 +2,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/authStore";
-import { authApi } from "@/services/api";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Hexor from "@/assets/hexor.svg";
 import {
   LayoutDashboard,
-  FileText,
   CreditCard,
   Settings,
   LogOut,
@@ -39,7 +38,7 @@ export const Sidebar = () => {
 
   const handleLogout = async () => {
     try {
-      await authApi.signOut();
+      await supabase.auth.signOut();
       reset();
       toast.success("Logout realizado com sucesso!");
       navigate("/auth");
