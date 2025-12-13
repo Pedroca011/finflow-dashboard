@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
 import { toast } from "sonner";
+import { authApi, userApi } from "@/services/api";
 
 export const useAuth = () => {
   const navigate = useNavigate();
@@ -53,76 +54,101 @@ export const useAuth = () => {
   }, []);
 
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (data) setProfile(data);
+    try {
+      const data = await userApi.getProfile();
+      if (data) setProfile(data);
+    } catch (error) {
+      console.error("Failed to fetch profile:", error);
+    }
   };
 
   const fetchSubscription = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (data) {
-      setSubscription({
-        ...data,
-        plan: data.plan as 'basic' | 'pro',
-        status: data.status as 'active' | 'inactive' | 'canceled',
-      });
+    try {
+      const data = await userApi.getSubscription();
+      if (data) {
+        setSubscription({
+          ...data,
+          plan: data.plan as 'basic' | 'pro',
+          status: data.status as 'active' | 'inactive' | 'canceled',
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch subscription:", error);
     }
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: { full_name: fullName },
-      },
-    });
+    try {
+      const data = await authApi.signUp(email, password, fullName);
+      
+      // Update store with session data
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.user);
+        
+        // Fetch profile and subscription
+        if (data.user) {
+          setTimeout(() => {
+            fetchProfile(data.user.id);
+            fetchSubscription(data.user.id);
+          }, 0);
+        }
+      }
 
-    if (error) {
-      if (error.message.includes("already registered")) {
+      toast.success("Conta criada com sucesso!");
+      return { data };
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || "Erro ao criar conta";
+      if (errorMessage.includes("already registered") || errorMessage.includes("already exists")) {
         toast.error("Este email já está cadastrado. Tente fazer login.");
       } else {
-        toast.error(error.message);
+        toast.error(errorMessage);
       }
       return { error };
     }
-
-    toast.success("Conta criada com sucesso!");
-    return { data };
   };
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const data = await authApi.signIn(email, password);
+      
+      // Update store with session data
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.user);
+        
+        // Fetch profile and subscription
+        if (data.user) {
+          setTimeout(() => {
+            fetchProfile(data.user.id);
+            fetchSubscription(data.user.id);
+          }, 0);
+        }
+      }
 
-    if (error) {
-      toast.error("Credenciais inválidas. Verifique seu email e senha.");
+      toast.success("Login realizado com sucesso!");
+      return { data };
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || "Credenciais inválidas";
+      toast.error(errorMessage);
       return { error };
     }
-
-    toast.success("Login realizado com sucesso!");
-    return { data };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    reset();
-    toast.success("Logout realizado com sucesso!");
-    navigate("/auth");
+    try {
+      await authApi.signOut();
+      await supabase.auth.signOut(); // Also sign out from Supabase client
+      reset();
+      toast.success("Logout realizado com sucesso!");
+      navigate("/auth");
+    } catch (error) {
+      // Even if API call fails, sign out locally
+      await supabase.auth.signOut();
+      reset();
+      toast.success("Logout realizado com sucesso!");
+      navigate("/auth");
+    }
   };
 
   return {

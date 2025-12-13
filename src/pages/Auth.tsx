@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
+import { authApi } from "@/services/api";
 import { toast } from "sonner";
 import { Loader2, TrendingUp, Mail, Lock, User } from "lucide-react";
+import { useAuthStore } from "@/stores/authStore";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -34,6 +35,7 @@ const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+  const { setUser, setSession } = useAuthStore();
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
 
   const loginForm = useForm<LoginFormData>({
@@ -48,40 +50,36 @@ const AuthPage = () => {
 
   const handleLogin = async (data: LoginFormData) => {
     setIsLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
-    });
-
-    if (error) {
-      toast.error("Credenciais inválidas");
-    } else {
-      toast.success("Login realizado com sucesso!");
-      navigate(from, { replace: true });
+    try {
+      const result = await authApi.signIn(data.email, data.password);
+      if (result.session) {
+        setSession(result.session);
+        setUser(result.user);
+        navigate(from, { replace: true });
+      }
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || "Credenciais inválidas";
+      toast.error(errorMessage);
     }
     setIsLoading(false);
   };
 
   const handleSignup = async (data: SignupFormData) => {
     setIsLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: { full_name: data.fullName },
-      },
-    });
-
-    if (error) {
-      if (error.message.includes("already registered")) {
+    try {
+      const result = await authApi.signUp(data.email, data.password, data.fullName);
+      if (result.session) {
+        setSession(result.session);
+        setUser(result.user);
+        navigate(from, { replace: true });
+      }
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || "Erro ao criar conta";
+      if (errorMessage.includes("already registered") || errorMessage.includes("already exists")) {
         toast.error("Este email já está cadastrado");
       } else {
-        toast.error(error.message);
+        toast.error(errorMessage);
       }
-    } else {
-      toast.success("Conta criada com sucesso!");
-      navigate(from, { replace: true });
     }
     setIsLoading(false);
   };

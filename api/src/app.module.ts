@@ -4,6 +4,9 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './shared/core/prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { SimulatorModule } from './modules/simulator/simulator.module';
+import { UserModule } from './modules/user/user.module';
+import { BillingModule } from './modules/billing/billing.module';
+import { SupabaseModule } from './shared/core/infra/supabase.module';
 
 @Module({
   controllers: [AppController],
@@ -15,6 +18,9 @@ import { SimulatorModule } from './modules/simulator/simulator.module';
     PrismaModule,
     AuthModule,
     SimulatorModule,
+    UserModule,
+    BillingModule,
+    SupabaseModule,
   ],
 })
 export class AppModule {}

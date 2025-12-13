@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { Profile, Subscription } from "@/types";
+import { userApi } from "@/services/api";
 
 interface AuthState {
   user: User | null;
@@ -36,26 +37,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setIsLoading: (value) => set({ isLoading: value }),
 
   fetchProfile: async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
-
-    if (!error && data) {
-      set({ profile: data as Profile });
+    try {
+      const data = await userApi.getProfile();
+      if (data) {
+        set({ profile: data as Profile });
+      }
+    } catch (error) {
+      console.error("Failed to fetch profile:", error);
     }
   },
 
   fetchSubscription: async (userId: string) => {
-    const { data, error } = await supabase
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
-
-    if (!error && data) {
-      set({ subscription: data as Subscription });
+    try {
+      const data = await userApi.getSubscription();
+      if (data) {
+        set({ subscription: data as Subscription });
+      }
+    } catch (error) {
+      console.error("Failed to fetch subscription:", error);
     }
   },
 

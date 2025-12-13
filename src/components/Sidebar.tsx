@@ -1,8 +1,8 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/authStore";
-import { supabase } from "@/integrations/supabase/client";
+import { authApi } from "@/services/api";
 import { toast } from "sonner";
 import Hexor from "@/assets/hexor.svg";
 import {
@@ -33,12 +33,21 @@ const menuItems = [
 
 export const Sidebar = () => {
   const location = useLocation();
-  const { profile, subscription } = useAuthStore();
+  const navigate = useNavigate();
+  const { profile, subscription, reset } = useAuthStore();
   const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast.success("Logout realizado com sucesso!");
+    try {
+      await authApi.signOut();
+      reset();
+      toast.success("Logout realizado com sucesso!");
+      navigate("/auth");
+    } catch (error) {
+      reset();
+      toast.success("Logout realizado com sucesso!");
+      navigate("/auth");
+    }
   };
 
   return (

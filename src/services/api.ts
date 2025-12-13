@@ -108,4 +108,59 @@ export const ordersApi = {
   },
 };
 
+export const userApi = {
+  getProfile: async () => {
+    const response = await apiClient.get('/user/profile');
+    return response.data;
+  },
+
+  getSubscription: async () => {
+    const response = await apiClient.get('/user/subscription');
+    return response.data;
+  },
+};
+
+export const authApi = {
+  signUp: async (email: string, password: string, fullName: string) => {
+    const response = await apiClient.post('/auth/signup', {
+      email,
+      password,
+      fullName,
+    });
+    return response.data;
+  },
+
+  signIn: async (email: string, password: string) => {
+    const response = await apiClient.post('/auth/signin', {
+      email,
+      password,
+    });
+    return response.data;
+  },
+
+  signOut: async () => {
+    const response = await apiClient.post('/auth/signout');
+    return response.data;
+  },
+
+  getSession: async () => {
+    const response = await apiClient.get('/auth/session');
+    return response.data;
+  },
+};
+
+export const billingApi = {
+  createCheckoutSession: async (priceId: string) => {
+    const response = await apiClient.post('/billing/create-checkout', {
+      priceId,
+    });
+    return response.data;
+  },
+
+  createCustomerPortalSession: async () => {
+    const response = await apiClient.post('/billing/customer-portal');
+    return response.data;
+  },
+};
+
 export default apiClient;
